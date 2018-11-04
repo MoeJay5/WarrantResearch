@@ -22,12 +22,17 @@ dt_warrants <- dt_warrants %>%
   filter(sex == "M")
 
 ######################################
-####          Mapping            #####
+####       Types of crimes       #####
 ######################################
 
-brMap <- readRDS(here::here('data/mapTerrainBR.RDS'))
 
-ggmap::ggmap(brMap) +
-  geom_point(data = dataComb, aes(x = long, y = lat, color = type), alpha = .35) + 
-  ggtitle('Emergency Calls')
+
+######################################
+####            Other            #####
+######################################
+# brMap <- readRDS(here::here('data/mapTerrainBR.RDS'))
+
+# ggmap::ggmap(brMap) +
+#   geom_point(data = dataComb, aes(x = long, y = lat, color = type), alpha = .35) + 
+#   ggtitle('Emergency Calls')
 
