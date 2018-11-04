@@ -1,0 +1,96 @@
+---
+title: "Warrents Research"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+editor_options: 
+  chunk_output_type: console
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(RSocrata)
+library(here)
+library(tidyverse)
+library(plotrix)
+
+if(!requireNamespace("devtools")) install.packages("devtools")
+devtools::install_github("dkahle/ggmap", ref = "tidyup")
+library(ggmap)
+
+source(here::here('Main/tokenSocrata.R'))
+```
+
+Type of Case for which warrant is issued: 
+
+CMISD = Criminal Misdemeanor
+DV = Domestic Violence
+CCTRAF = Traffic Offense
+PP = Partial Payment Account
+CCDWI = Driving While Intoxicated
+
+<!-- Warrants Database -->
+
+```{r}
+warants <- 'https://data.brla.gov/resource/gdjb-agbb.csv?'
+query <- "$where=doa between '2016-06-12' and '2016-08-22'"
+dt_warrants <- read.socrata(paste0(warants, query), app_token = token[['app']])
+dt_warrants <- as_tibble(dt_warrants)
+```
+
+### Types of Crimes
+
+```{r}
+ggplot(data = dt_warrants) +
+  geom_bar(aes(x = type, fill = type), color = "black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  labs(title = "Types of Crimes", y = "Number of Warrants", x = "Types", fill = "Types - Color")
+```
+
+### Warrants Issued by Gender
+
+```{r}
+#Males
+dt_male <- dt_warrants %>% 
+  filter(sex == "M")
+
+num_males <- count(dt_male)
+
+#Females
+dt_females <- dt_warrants %>% 
+  filter(sex == "F")
+
+num_females <- count(dt_females)
+
+# Simple Pie Chart
+slices <- c(num_males$n,num_females$n)
+pct <- round(slices/sum(slices)*100)
+lbls <- paste(c("Male", "Female"), pct,"%",sep="") # ad % to labels 
+pie3D(slices, labels = lbls, explode=0.1, main="Warrents Issued to Men vs. Women")
+```
+
+### Crimes by Gender
+
+```{r}
+counts <- table(dt_warrants$sex,dt_warrants$type)
+barplot(counts, main = 'Baton Rouge Police Issued Warrants by Gender',
+        xlab = "Crime Type", col = c('hotpink','blue'),
+        legend = rownames(counts), beside = TRUE)
+```
+
+### Warrants by States
+
+```{r}
+
+```
+
+<!-- ###################################### -->
+<!-- #               Other                # -->
+<!-- ###################################### -->
+<!-- brMap <- readRDS(here::here('data/mapTerrainBR.RDS')) -->
+
+<!-- ggmap::ggmap(brMap) + -->
+<!--    geom_point(data = dataComb, aes(x = long, y = lat, color = type), alpha = .35) +  -->
+<!--    ggtitle('Emergency Calls') -->
+
