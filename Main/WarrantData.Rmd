@@ -109,7 +109,7 @@ dt_warrants %>%
 
 ```{r}
 dt_warrants %>%
-  filter(sex != "" & sex != "O") %>%
+  filter(sex != "" & sex != "O" & type != "CCC") %>%
   ggplot() +
     geom_bar(aes(x = type, fill = sex), color = "black", position = 'dodge', alpha = .90) +
     ggtitle('Crimes by Gender') + xlab("Crime Type") + ylab("Warrants Amount") + labs(fill ='Sex') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
