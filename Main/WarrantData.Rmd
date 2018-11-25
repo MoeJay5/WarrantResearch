@@ -2,18 +2,27 @@
 title: "Warrents Research"
 output: 
   flexdashboard::flex_dashboard:
-    orientation: columns
+    orientation: column
     vertical_layout: fill
+    theme: simplex
 editor_options: 
   chunk_output_type: console
 runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
+library(flexdashboard)
 library(RSocrata)
 library(here)
 library(tidyverse)
 library(plotrix)
+library(plyr) 
+library(maps)
+data(world.cities)
+library(rbokeh)
+library(Rcpp)
+library(dplyr)
+library(widgetframe)
 
 if(!requireNamespace("devtools")) install.packages("devtools")
 devtools::install_github("dkahle/ggmap", ref = "tidyup")
@@ -21,14 +30,6 @@ library(ggmap)
 
 source(here::here('Main/tokenSocrata.R'))
 ```
-
-Type of Case for which warrant is issued: 
-
-CMISD = Criminal Misdemeanor
-DV = Domestic Violence
-CCTRAF = Traffic Offense
-PP = Partial Payment Account
-CCDWI = Driving While Intoxicated
 
 <!-- Warrants Database -->
 
@@ -39,58 +40,73 @@ dt_warrants <- read.socrata(paste0(warants, query), app_token = token[['app']])
 dt_warrants <- as_tibble(dt_warrants)
 ```
 
+Column {data-width=600}
+-------------------------------------
+
+### Warrants by States
+
+```{r}
+caps <- dplyr::filter(world.cities, country.etc =="USA")
+caps$name <- toupper(caps$name)
+colnames(dt_warrants)[6] <- "blah"
+colnames(dt_warrants)[1] <- "name"
+
+dt_warrants$name <- toupper(dt_warrants$name)
+
+x <- merge(x = caps, y = dt_warrants)
+
+s <- count(x$name)
+colnames(s)[1] <- "name"
+
+blah <- merge(x = x, y = s, by = "name", all = TRUE) 
+kharya <- distinct(blah, name, freq,lat,long, pop)
+colnames(kharya)[1] <- "Location"
+colnames(kharya)[5] <- "Amount"
+colnames(kharya)[2] <- "Population"
+
+plot <- suppressWarnings(figure(width = 600, height = 400, padding_factor = 0) %>%
+  ly_map("world", col = "gray") %>%
+  ly_points(long, lat, data = kharya, size = 5,
+            hover = c(Location, Population, Amount)))
+
+frameWidget(plot,width=600,height=400)
+```
+
+Row {.tabset .tabset-fade}
+-------------------------------------
+
 ### Types of Crimes
 
 ```{r}
-ggplot(data = dt_warrants) +
+
+temp <- dt_warrants %>%
+mutate(type = case_when(
+  type == "CMISD" ~ "Criminal Misdemeanor",
+  type == "DV" ~ "Domestic Violence",
+  type == "CCTRAF" ~ "Traffic Offense",
+  type == "PP" ~ "Partial Payment Account",
+  type == "CCDWI" ~ "Driving While Intoxicated"
+  ))
+
+tempLabels <- c("1","2","3","4", "5")
+
+ggplot(data = temp) +
   geom_bar(aes(x = type, fill = type), color = "black") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  labs(title = "Types of Crimes", y = "Number of Warrants", x = "Types", fill = "Types - Color")
+  labs(title = "Types of Crimes", y = "Number of Warrants", x = "Crime Type", fill = "Color") + scale_x_discrete(labels = tempLabels)
 ```
 
 ### Warrants Issued by Gender
 
 ```{r}
-#Males
-dt_male <- dt_warrants %>% 
-  filter(sex == "M")
-
-num_males <- count(dt_male)
-
-#Females
-dt_females <- dt_warrants %>% 
-  filter(sex == "F")
-
-num_females <- count(dt_females)
-
-# Simple Pie Chart
-slices <- c(num_males$n,num_females$n)
-pct <- round(slices/sum(slices)*100)
-lbls <- paste(c("Male", "Female"), pct,"%",sep="") # ad % to labels 
-pie3D(slices, labels = lbls, explode=0.1, main="Warrents Issued to Men vs. Women")
+ggplot() + geom_bar(data = dt_warrants, aes(x = 'warrants', fill = sex), position = 'fill')+ 
+  labs(title = "Types of Crimes")
 ```
 
 ### Crimes by Gender
 
 ```{r}
-counts <- table(dt_warrants$sex,dt_warrants$type)
-barplot(counts, main = 'Baton Rouge Police Issued Warrants by Gender',
-        xlab = "Crime Type", col = c('hotpink','blue'),
-        legend = rownames(counts), beside = TRUE)
+ggplot() +
+  geom_bar(data = dt_warrants, aes(x = type, fill = sex), color = "black", position = 'dodge', alpha = .90) +
+  ggtitle('Issued Warrants by Gender') + xlab("Crime Type") + ylab("Warrants Amount") + labs(fill ='Sex') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
-
-### Warrants by States
-
-```{r}
-
-```
-
-<!-- ###################################### -->
-<!-- #               Other                # -->
-<!-- ###################################### -->
-<!-- brMap <- readRDS(here::here('data/mapTerrainBR.RDS')) -->
-
-<!-- ggmap::ggmap(brMap) + -->
-<!--    geom_point(data = dataComb, aes(x = long, y = lat, color = type), alpha = .35) +  -->
-<!--    ggtitle('Emergency Calls') -->
-
