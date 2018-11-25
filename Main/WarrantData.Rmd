@@ -35,7 +35,7 @@ source(here::here('Main/tokenSocrata.R'))
 
 ```{r}
 warants <- 'https://data.brla.gov/resource/gdjb-agbb.csv?'
-query <- "$where=doa between '2016-06-12' and '2016-08-22'"
+query <- "$where=doa between '2014-06-12' and '2016-05-12'"
 dt_warrants <- read.socrata(paste0(warants, query), app_token = token[['app']])
 dt_warrants <- as_tibble(dt_warrants)
 ```
@@ -78,15 +78,15 @@ Row {.tabset .tabset-fade}
 ### Types of Crimes
 
 ```{r}
-
 temp <- dt_warrants %>%
-mutate(type = case_when(
-  type == "CMISD" ~ "Criminal Misdemeanor",
-  type == "DV" ~ "Domestic Violence",
-  type == "CCTRAF" ~ "Traffic Offense",
-  type == "PP" ~ "Partial Payment Account",
-  type == "CCDWI" ~ "Driving While Intoxicated"
-  ))
+  filter(type != "CCC" & type != "PKCONA") %>%
+  mutate(type = case_when(
+    type == "CMISD" ~ "Criminal Misdemeanor",
+    type == "DV" ~ "Domestic Violence",
+    type == "CCTRAF" ~ "Traffic Offense",
+    type == "PP" ~ "Partial Payment Account",
+    type == "CCDWI" ~ "Driving While Intoxicated"
+    ))
 
 tempLabels <- c("1","2","3","4", "5")
 
@@ -99,14 +99,18 @@ ggplot(data = temp) +
 ### Warrants Issued by Gender
 
 ```{r}
-ggplot() + geom_bar(data = dt_warrants, aes(x = 'warrants', fill = sex), position = 'fill')+ 
-  labs(title = "Types of Crimes")
+dt_warrants %>%
+  filter(sex != "" & sex != "O") %>%
+  ggplot() + geom_bar(aes(x = 'warrants', fill = sex), position = 'fill')+ 
+    labs(title = "Warrants Issued by Gender", x = "", y = "Amount")
 ```
 
 ### Crimes by Gender
 
 ```{r}
-ggplot() +
-  geom_bar(data = dt_warrants, aes(x = type, fill = sex), color = "black", position = 'dodge', alpha = .90) +
-  ggtitle('Issued Warrants by Gender') + xlab("Crime Type") + ylab("Warrants Amount") + labs(fill ='Sex') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+dt_warrants %>%
+  filter(sex != "" & sex != "O") %>%
+  ggplot() +
+    geom_bar(aes(x = type, fill = sex), color = "black", position = 'dodge', alpha = .90) +
+    ggtitle('Crimes by Gender') + xlab("Crime Type") + ylab("Warrants Amount") + labs(fill ='Sex') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
